@@ -7,8 +7,8 @@ grounding_dino:
   config_path: './GroundingDINO_SwinB.cfg.py'
   checkpoint_path: './groundingdino_swinb_cogcoor.pth'
   classes: ['a license plate', 'a human face']
-  box_threshold: 0.2
-  text_threshold: 0.2
+  box_threshold: 0.15
+  text_threshold: 0.15
   nms_threshold: 0.2
 segment_anything:
   encoder_version: 'vit_h'

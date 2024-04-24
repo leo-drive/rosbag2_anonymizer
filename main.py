@@ -97,11 +97,8 @@ if __name__ == '__main__':
                     valid_ids.append(index)
                 else:
                     invalid_ids.append(index)
-
-                # Debug ------------------
-                # cv2.imshow("as", detection_image)
-                # cv2.waitKey(2000)
-                # Debug ------------------
+            # valid_detections = sv.Detections(xyxy=detections.xyxy[valid_ids], confidence=detections.confidence[valid_ids], class_id=detections.class_id[valid_ids])
+            # invalid_detections = sv.Detections(xyxy=detections.xyxy[invalid_ids], confidence=detections.confidence[invalid_ids], class_id=detections.class_id[invalid_ids])
             detections.xyxy = detections.xyxy[valid_ids]
             detections.confidence = detections.confidence[valid_ids]
             detections.class_id = detections.class_id[valid_ids]
@@ -119,13 +116,28 @@ if __name__ == '__main__':
 
             # Debug ------------------
             # box_annotator = sv.BoxAnnotator()
-            # mask_annotator = sv.MaskAnnotator()
+            # valid_box_annotator = sv.BoxAnnotator(color=sv.ColorPalette.from_hex(['#008000']))
+            # invalid_box_annotator = sv.BoxAnnotator(color=sv.ColorPalette.from_hex(['#FF0000']))
             # labels = [
             #     f"{CLASSES[class_id]} {confidence:0.2f}"
             #     for _, _, confidence, class_id, _
             #     in detections]
-            # annotated_image = mask_annotator.annotate(scene=image.copy(), detections=detections)
+            # valid_labels = [
+            #     f"{CLASSES[class_id]} {confidence:0.2f}"
+            #     for _, _, confidence, class_id, _
+            #     in valid_detections]
+            # invalid_labels = [
+            #     f"{CLASSES[class_id]} {confidence:0.2f}"
+            #     for _, _, confidence, class_id, _
+            #     in invalid_detections]
+            # height, width = image.shape[:2]
+            # new_height = height // 2
+            # new_width = width // 2
             # annotated_image = box_annotator.annotate(scene=output, detections=detections, labels=labels)
-            # cv2.imwrite(f"/home/bzeren/projects/labs/rosbag2_annoymizer/output/{image_path.split('/')[-1]}", annotated_image)
+            # annotated_image = valid_box_annotator.annotate(scene=output, detections=valid_detections, labels=valid_labels)
+            # annotated_image = invalid_box_annotator.annotate(scene=output, detections=invalid_detections, labels=invalid_labels)
+            # annotated_image = cv2.resize(annotated_image, (new_width, new_height))
+            # cv2.imshow('test', annotated_image)
+            # cv2.waitKey(1)
             # Debug ------------------
 
