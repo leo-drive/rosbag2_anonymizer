@@ -1,4 +1,5 @@
 import os
+import yaml
 
 from tqdm import tqdm
 
@@ -21,25 +22,28 @@ from model.sam import SAM
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
+with open('config.yaml', 'r') as file:
+    config = yaml.safe_load(file)
+
 if __name__ == '__main__':
-    reader = RosbagReader('/home/bzeren/projects/labs/data/rosbags/rosbag2_2024_03_22-18_27_21/rosbag2_2024_03_22-18_27_21_0-001.mcap')
-    writer = RosbagWriter('/home/bzeren/projects/labs/data/rosbags/rosbag2_2024_03_22-18_27_21/output', True, 'sqlite3')
+    reader = RosbagReader(config['rosbag']['input_bag_path'])
+    writer = RosbagWriter(config['rosbag']['output_bag_paht'], config['rosbag']['output_save_compressed_image'], config['rosbag']['output_storage_id'])
 
     # GroundingDINO parameters
-    GROUNDING_DINO_CONFIG_PATH = "./GroundingDINO_SwinB.cfg.py"
-    GROUNDING_DINO_CHECKPOINT_PATH = "./groundingdino_swinb_cogcoor.pth"
+    GROUNDING_DINO_CONFIG_PATH = config['grounding_dino']['config_path']
+    GROUNDING_DINO_CHECKPOINT_PATH = config['grounding_dino']['checkpoint_path']
 
-    CLASSES = ["a license plate", "a human face"]
-    BOX_THRESHOLD = 0.20
-    TEXT_THRESHOLD = 0.20
-    NMS_THRESHOLD = 0.2
+    CLASSES = config['grounding_dino']['classes']
+    BOX_THRESHOLD = config['grounding_dino']['box_threshold']
+    TEXT_THRESHOLD = config['grounding_dino']['text_threshold']
+    NMS_THRESHOLD = config['grounding_dino']['nms_threshold']
 
     # Segment-Anything parameters
-    SAM_ENCODER_VERSION = "vit_h"
-    SAM_CHECKPOINT_PATH = "./sam_vit_h_4b8939.pth"
+    SAM_ENCODER_VERSION = config['segment_anything']['encoder_version']
+    SAM_CHECKPOINT_PATH = config['segment_anything']['checkpoint_path']
 
     # OpenClip parameters
-    VALIDATION_CLASSES = ["a license plate", "a human face", "a car"]
+    VALIDATION_CLASSES = config['openclip']['classes']
 
     
     # Grounding DINO
@@ -53,7 +57,6 @@ if __name__ == '__main__':
 
     for i, (msg, is_image) in enumerate(reader):
         if not is_image:
-            print(msg.type)
             writer.write_any(msg.data, msg.type, msg.topic, msg.timestamp)
         else:
             image = cv_bridge.CvBridge().compressed_imgmsg_to_cv2(msg.data)
@@ -90,7 +93,7 @@ if __name__ == '__main__':
                 pil_image = Image.fromarray(detection_image)
 
                 scores = open_clip(pil_image, VALIDATION_CLASSES)
-                if scores.numpy().tolist()[0][class_id] > 0.75:
+                if scores.numpy().tolist()[0][class_id] > config['openclip']['score_threshold']:
                     valid_ids.append(index)
                 else:
                     invalid_ids.append(index)
@@ -107,7 +110,7 @@ if __name__ == '__main__':
             detections = sam(image=image, detections=detections)
 
             # Blur detections
-            blurred_img = cv2.GaussianBlur(image, (21, 21), 0)
+            blurred_img = cv2.GaussianBlur(image, (config['blur']['kernel_size'], config['blur']['kernel_size']), config['blur']['sigma_x'])
             output = image.copy()
             for xyxy, mask, confidence, class_id, _ in detections:
                 output[mask] = blurred_img[mask]

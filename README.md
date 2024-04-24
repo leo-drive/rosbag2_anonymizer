@@ -35,6 +35,8 @@ pip install -r requirements.txt
 
 ### Usage
 
+**Check `config.yaml` and run `main.py`**
+
 ``` shell
 python3 main.py
 ```

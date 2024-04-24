@@ -1,0 +1,21 @@
+rosbag:
+  input_bag_path: '/home/bzeren/projects/labs/data/rosbags/rosbag2_2024_03_22-18_27_21/rosbag2_2024_03_22-18_27_21_0-001.mcap'
+  output_bag_paht: '/home/bzeren/projects/labs/data/rosbags/rosbag2_2024_03_22-18_27_21/output'
+  output_save_compressed_image: True
+  output_storage_id: 'sqlite3' # 'sqlite3' or 'mcap'
+grounding_dino:
+  config_path: './GroundingDINO_SwinB.cfg.py'
+  checkpoint_path: './groundingdino_swinb_cogcoor.pth'
+  classes: ['a license plate', 'a human face']
+  box_threshold: 0.2
+  text_threshold: 0.2
+  nms_threshold: 0.2
+segment_anything:
+  encoder_version: 'vit_h'
+  checkpoint_path: './sam_vit_h_4b8939.pth'
+openclip:
+  classes: ['a license plate', 'a human face', 'a car']
+  score_threshold: 0.75
+blur:
+  kernel_size: 21
+  sigma_x: 0
