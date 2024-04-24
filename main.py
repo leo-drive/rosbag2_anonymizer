@@ -21,17 +21,13 @@ from model.sam import SAM
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-from huggingface_hub import hf_hub_download
-hf_hub_download(repo_id="ShilongLiu/GroundingDINO", filename="GroundingDINO_SwinB.cfg.py")
-hf_hub_download(repo_id="ShilongLiu/GroundingDINO", filename="groundingdino_swinb_cogcoor.pth")
-
 if __name__ == '__main__':
     reader = RosbagReader('/home/bzeren/projects/labs/data/rosbags/rosbag2_2024_03_22-18_27_21/rosbag2_2024_03_22-18_27_21_0-001.mcap')
     writer = RosbagWriter('/home/bzeren/projects/labs/data/rosbags/rosbag2_2024_03_22-18_27_21/output', True, 'sqlite3')
 
     # GroundingDINO parameters
-    GROUNDING_DINO_CONFIG_PATH = "weight/GroundingDINO_SwinB.cfg.py"
-    GROUNDING_DINO_CHECKPOINT_PATH = "weight/groundingdino_swinb_cogcoor.pth"
+    GROUNDING_DINO_CONFIG_PATH = "./GroundingDINO_SwinB.cfg.py"
+    GROUNDING_DINO_CHECKPOINT_PATH = "./groundingdino_swinb_cogcoor.pth"
 
     CLASSES = ["a license plate", "a human face"]
     BOX_THRESHOLD = 0.20
@@ -55,7 +51,9 @@ if __name__ == '__main__':
     # Openclip
     open_clip = OpenClipModel("ViT-B-32", "laion2b_s34b_b79k")
 
-    for msg in reader:
+    for i, (msg) in enumerate(reader):
+        print(f"Frame: {i}")
+
         image = cv_bridge.CvBridge().compressed_imgmsg_to_cv2(msg.data)
 
         # Run DINO
@@ -112,7 +110,6 @@ if __name__ == '__main__':
         for xyxy, mask, confidence, class_id, _ in detections:
             output[mask] = blurred_img[mask]
 
-        print(output)
         writer.write(output, msg.topic, msg.timestamp)
 
         # Debug ------------------
