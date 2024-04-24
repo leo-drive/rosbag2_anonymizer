@@ -1,3 +1,5 @@
+from typing import Tuple
+
 import rosbag2_py
 from rclpy.serialization import deserialize_message
 from rosidl_runtime_py.utilities import get_message
@@ -22,15 +24,15 @@ class RosbagReader():
     def __iter__(self):
         return self
     
-    def __next__(self) -> RosMessage:
+    def __next__(self) -> Tuple[RosMessage, bool]:
         if self.reader.has_next():
             (topic, data, t) = self.reader.read_next()
             if self.type_map[topic] == 'sensor_msgs/msg/CompressedImage':
-                return RosMessage(topic, self.type_map[topic], deserialize_message(data, get_message(self.type_map[topic])), t)
+                return RosMessage(topic, self.type_map[topic], deserialize_message(data, get_message(self.type_map[topic])), t), True
             elif self.type_map[topic] == 'sensor_msgs/msg/Image':
-                return RosMessage(topic, self.type_map[topic], deserialize_message(data, get_message(self.type_map[topic])), t)
+                return RosMessage(topic, self.type_map[topic], deserialize_message(data, get_message(self.type_map[topic])), t), True
             else:
-                return self.__next__()
+                return RosMessage(topic, self.type_map[topic], deserialize_message(data, get_message(self.type_map[topic])), t), False
         else:
             raise StopIteration
     

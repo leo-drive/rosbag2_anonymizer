@@ -24,18 +24,19 @@ class RosbagWriter():
     def __dell__(self):
         self.writer.close()
 
-    def write(self, image, topic_name, timestamp):
+    def write_image(self, image, topic_name, timestamp):
         if topic_name not in self.type_map:
             create_topic(self.writer, topic_name, 'sensor_msgs/msg/Image' if not self.write_compressed else 'sensor_msgs/msg/CompressedImage')
             self.type_map[topic_name] = 'sensor_msgs/msg/Image' if not self.write_compressed else 'sensor_msgs/msg/CompressedImage'
         
         if self.write_compressed:
             image_msg = self.bride.cv2_to_compressed_imgmsg(image)
-            # image_msg.header.stamp.sec = timestamp.sec
-            # image_msg.header.stamp.nanosec = timestamp.nanosec
             self.writer.write(topic_name, serialize_message(image_msg), timestamp)
         else:
             image_msg = self.bride.cv2_to_imgmsg(image)
-            # image_msg.header.stamp.sec = timestamp.sec
-            # image_msg.header.stamp.nanosec = timestamp.nanosec
             self.writer.write(topic_name, serialize_message(image_msg), timestamp)
+    def write_any(self, msg, msg_type, topic_name, timestamp):
+        if topic_name not in self.type_map:
+            create_topic(self.writer, topic_name, msg_type)
+            
+        self.writer.write(topic_name, serialize_message(msg), timestamp)
