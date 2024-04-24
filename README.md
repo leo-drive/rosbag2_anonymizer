@@ -2,6 +2,10 @@
 
 A tool to anonymize images in ros2 bags. 
 
+<p align="center">
+  <img src="docs/new_proposal-original-proposal.drawio.png" alt="system" height="1200px"/>
+</p>
+
 ### Installation
 
 **Clone the repository**
