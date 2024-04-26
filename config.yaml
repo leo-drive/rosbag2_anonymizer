@@ -15,9 +15,9 @@ segment_anything:
 openclip:
   model_name: 'ViT-B-32'
   pretrained_model: 'laion2b_s34b_b79k'
-  score_threshold: 0.8
+  score_threshold: 0.7
 bbox_validation:
   iou_threshold: 0.9
 blur:
   kernel_size: 21
-  sigma_x: 0
+  sigma_x: 9

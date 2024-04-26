@@ -98,6 +98,7 @@ if __name__ == '__main__':
             for index, (xyxy, mask, confidence, class_id, _) in enumerate(detections):
                 if CLASSES[class_id] in DETECTION_CLASSES:
                     # Run OpenClip
+                    # and accept as a valid object if the score is greater than 0.9
                     detection_image = image[int(xyxy[1]):int(xyxy[3]), int(xyxy[0]):int(xyxy[2]), :]
                     pil_image = Image.fromarray(detection_image)
                     scores = open_clip(pil_image, CLASSES)
@@ -106,7 +107,10 @@ if __name__ == '__main__':
                         continue
                     
                     # Bbox validation
-                    if bbox_check(xyxy, class_id, detections, IOU_THRESHOLD, CLASSES, CLASS_MAP) and max(scores.numpy().tolist()[0]) == scores.numpy().tolist()[0][class_id]:
+                    # If the object is within the 'should_inside' object 
+                    # and if the score is the highest among the scores, 
+                    # or greater than 0.4.
+                    if bbox_check(xyxy, class_id, detections, IOU_THRESHOLD, CLASSES, CLASS_MAP) and (max(scores.numpy().tolist()[0]) == scores.numpy().tolist()[0][class_id] or scores.numpy().tolist()[0][class_id] > 0.3):
                         valid_ids.append(index)
                     else:
                         invalid_ids.append(index)

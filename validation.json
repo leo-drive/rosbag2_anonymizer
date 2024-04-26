@@ -2,12 +2,12 @@
     "prompts": [
         {
             "prompt": "license plate",
-            "should_inside": ["car", "truck", "bus", "motorbike"],
+            "should_inside": ["car", "bus", "truck", "minibus", "motorcycle", "trailer", "utility vehicle", "tractor", "golf cart", "sem,-truck", "moped", "scooter"],
             "should_not_inside": []
         },
         {
             "prompt": "human face",
-            "should_inside": ["pedestrian"],
+            "should_inside": ["person"],
             "should_not_inside": []
         }
     ]
