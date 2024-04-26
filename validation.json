@@ -1,0 +1,14 @@
+{
+    "prompts": [
+        {
+            "prompt": "license plate",
+            "should_inside": ["car", "truck", "bus", "motorbike"],
+            "should_not_inside": []
+        },
+        {
+            "prompt": "human face",
+            "should_inside": ["pedestrian"],
+            "should_not_inside": []
+        }
+    ]
+}

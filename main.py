@@ -1,17 +1,16 @@
-import os
 import yaml
-
-from tqdm import tqdm
+import json
 
 import cv2
 import cv_bridge
 from PIL import Image
-import supervision as sv
 
-import numpy as np
+import supervision as sv
 
 import torch
 import torchvision
+
+from common import create_classes, calculate_iou, bbox_check, blur_detections
 
 from rosbag_io.rosbag_reader import RosbagReader
 from rosbag_io.rosbag_writer import RosbagWriter
@@ -25,15 +24,20 @@ DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 with open('config.yaml', 'r') as file:
     config = yaml.safe_load(file)
 
+with open('validation.json', 'r') as json_file:
+    json_data = json.load(json_file)
+
 if __name__ == '__main__':
     reader = RosbagReader(config['rosbag']['input_bag_path'])
     writer = RosbagWriter(config['rosbag']['output_bag_paht'], config['rosbag']['output_save_compressed_image'], config['rosbag']['output_storage_id'])
+
+    # Define classes
+    DETECTION_CLASSES, CLASSES, CLASS_MAP = create_classes(json_data=json_data)
 
     # GroundingDINO parameters
     GROUNDING_DINO_CONFIG_PATH = config['grounding_dino']['config_path']
     GROUNDING_DINO_CHECKPOINT_PATH = config['grounding_dino']['checkpoint_path']
 
-    CLASSES = config['grounding_dino']['classes']
     BOX_THRESHOLD = config['grounding_dino']['box_threshold']
     TEXT_THRESHOLD = config['grounding_dino']['text_threshold']
     NMS_THRESHOLD = config['grounding_dino']['nms_threshold']
@@ -43,9 +47,12 @@ if __name__ == '__main__':
     SAM_CHECKPOINT_PATH = config['segment_anything']['checkpoint_path']
 
     # OpenClip parameters
-    VALIDATION_CLASSES = config['openclip']['classes']
+    OPENCLIP_MODEL_NAME = config['openclip']['model_name']
+    OPENCLIP_PRETRAINED_MODEL = config['openclip']['pretrained_model']
 
-    
+    #Validation
+    IOU_THRESHOLD = config['bbox_validation']['iou_threshold']
+
     # Grounding DINO
     grounding_dino = GroundingDINO(GROUNDING_DINO_CONFIG_PATH, GROUNDING_DINO_CHECKPOINT_PATH)
 
@@ -53,7 +60,7 @@ if __name__ == '__main__':
     sam = SAM(SAM_ENCODER_VERSION, SAM_CHECKPOINT_PATH, DEVICE)
 
     # Openclip
-    open_clip = OpenClipModel("ViT-B-32", "laion2b_s34b_b79k")
+    open_clip = OpenClipModel(OPENCLIP_MODEL_NAME, OPENCLIP_PRETRAINED_MODEL)
 
     for i, (msg, is_image) in enumerate(reader):
         if not is_image:
@@ -85,16 +92,24 @@ if __name__ == '__main__':
             detections.confidence = detections.confidence[nms_idx]
             detections.class_id = detections.class_id[nms_idx]
 
-            # Run open clip
+            # Validation
             valid_ids = []
             invalid_ids = []
             for index, (xyxy, mask, confidence, class_id, _) in enumerate(detections):
-                detection_image = image[int(xyxy[1]):int(xyxy[3]), int(xyxy[0]):int(xyxy[2]), :]
-                pil_image = Image.fromarray(detection_image)
-
-                scores = open_clip(pil_image, VALIDATION_CLASSES)
-                if scores.numpy().tolist()[0][class_id] > config['openclip']['score_threshold']:
-                    valid_ids.append(index)
+                if CLASSES[class_id] in DETECTION_CLASSES:
+                    # Run OpenClip
+                    detection_image = image[int(xyxy[1]):int(xyxy[3]), int(xyxy[0]):int(xyxy[2]), :]
+                    pil_image = Image.fromarray(detection_image)
+                    scores = open_clip(pil_image, CLASSES)
+                    if scores.numpy().tolist()[0][class_id] > config['openclip']['score_threshold']:
+                        valid_ids.append(index)
+                        continue
+                    
+                    # Bbox validation
+                    if bbox_check(xyxy, class_id, detections, IOU_THRESHOLD, CLASSES, CLASS_MAP) and max(scores.numpy().tolist()[0]) == scores.numpy().tolist()[0][class_id]:
+                        valid_ids.append(index)
+                    else:
+                        invalid_ids.append(index)
                 else:
                     invalid_ids.append(index)
             # valid_detections = sv.Detections(xyxy=detections.xyxy[valid_ids], confidence=detections.confidence[valid_ids], class_id=detections.class_id[valid_ids])
@@ -107,36 +122,36 @@ if __name__ == '__main__':
             detections = sam(image=image, detections=detections)
 
             # Blur detections
-            blurred_img = cv2.GaussianBlur(image, (config['blur']['kernel_size'], config['blur']['kernel_size']), config['blur']['sigma_x'])
-            output = image.copy()
-            for xyxy, mask, confidence, class_id, _ in detections:
-                output[mask] = blurred_img[mask]
+            output = blur_detections(image, detections, config['blur']['kernel_size'], config['blur']['sigma_x'])
 
+            # Write blured image to rosbag
             writer.write_image(output, msg.topic, msg.timestamp)
 
             # Debug ------------------
             # box_annotator = sv.BoxAnnotator()
-            # valid_box_annotator = sv.BoxAnnotator(color=sv.ColorPalette.from_hex(['#008000']))
-            # invalid_box_annotator = sv.BoxAnnotator(color=sv.ColorPalette.from_hex(['#FF0000']))
             # labels = [
             #     f"{CLASSES[class_id]} {confidence:0.2f}"
             #     for _, _, confidence, class_id, _
             #     in detections]
-            # valid_labels = [
-            #     f"{CLASSES[class_id]} {confidence:0.2f}"
-            #     for _, _, confidence, class_id, _
-            #     in valid_detections]
+            # annotated_image = box_annotator.annotate(scene=output, detections=detections, labels=labels)
+
+            # invalid_box_annotator = sv.BoxAnnotator(color=sv.ColorPalette.from_hex(['#FF0000']))
             # invalid_labels = [
             #     f"{CLASSES[class_id]} {confidence:0.2f}"
             #     for _, _, confidence, class_id, _
             #     in invalid_detections]
-            # height, width = image.shape[:2]
-            # new_height = height // 2
-            # new_width = width // 2
-            # annotated_image = box_annotator.annotate(scene=output, detections=detections, labels=labels)
-            # annotated_image = valid_box_annotator.annotate(scene=output, detections=valid_detections, labels=valid_labels)
             # annotated_image = invalid_box_annotator.annotate(scene=output, detections=invalid_detections, labels=invalid_labels)
-            # annotated_image = cv2.resize(annotated_image, (new_width, new_height))
+
+            # valid_box_annotator = sv.BoxAnnotator(color=sv.ColorPalette.from_hex(['#008000']))
+            # valid_labels = [
+            #     f"{CLASSES[class_id]} {confidence:0.2f}"
+            #     for _, _, confidence, class_id, _
+            #     in valid_detections]
+            # annotated_image = valid_box_annotator.annotate(scene=output, detections=valid_detections, labels=valid_labels)
+
+            # height, width = image.shape[:2]
+            # annotated_image = cv2.resize(annotated_image, (width // 2, height // 2))
+        
             # cv2.imshow('test', annotated_image)
             # cv2.waitKey(1)
             # Debug ------------------
