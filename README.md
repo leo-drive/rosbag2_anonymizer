@@ -3,7 +3,11 @@
 A tool to anonymize images in ros2 bags. 
 
 <p align="center">
-  <img src="docs/new_proposal-original-proposal.drawio.png" alt="system" height="1200px"/>
+  <img src="docs/rosbag2_anonymizer.png" alt="system" height="600px"/>
+</p>
+
+<p align="center">
+  <img src="docs/validation.png" alt="system" height="600px"/>
 </p>
 
 ### Installation
