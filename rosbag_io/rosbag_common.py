@@ -5,6 +5,7 @@ from rclpy.clock import Clock, ClockType
 from rclpy.duration import Duration
 import rosbag2_py
 
+
 class RosMessage:
     def __init__(self, topic, type, data, timestamp):
         self.topic = topic
@@ -15,13 +16,14 @@ class RosMessage:
     def __repr__(self) -> str:
         f"topic: {self.topic} | type: {self.type} | timestamp: {self.timestamp} | data: {self.data}"
 
-def get_rosbag_options(path, storage_id, serialization_format='cdr'):
-    storage_options = rosbag2_py.StorageOptions(
-        uri=path, storage_id=storage_id)
+
+def get_rosbag_options(path, storage_id, serialization_format="cdr"):
+    storage_options = rosbag2_py.StorageOptions(uri=path, storage_id=storage_id)
 
     converter_options = rosbag2_py.ConverterOptions(
         input_serialization_format=serialization_format,
-        output_serialization_format=serialization_format)
+        output_serialization_format=serialization_format,
+    )
 
     return storage_options, converter_options
 
@@ -38,8 +40,9 @@ def wait_for(
             return False
         time.sleep(sleep_time)
         return True
-    
-def create_topic(writer, topic_name, topic_type, serialization_format='cdr'):
+
+
+def create_topic(writer, topic_name, topic_type, serialization_format="cdr"):
     """
     Create a new topic.
 
@@ -50,7 +53,8 @@ def create_topic(writer, topic_name, topic_type, serialization_format='cdr'):
     :return:
     """
     topic_name = topic_name
-    topic = rosbag2_py.TopicMetadata(name=topic_name, type=topic_type,
-                                     serialization_format=serialization_format)
+    topic = rosbag2_py.TopicMetadata(
+        name=topic_name, type=topic_type, serialization_format=serialization_format
+    )
 
     writer.create_topic(topic)

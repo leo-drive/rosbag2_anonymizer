@@ -2,10 +2,14 @@ import torch
 from PIL import Image
 import open_clip
 
-class OpenClipModel():
+
+class OpenClipModel:
     def __init__(self, model_name, pretrained) -> None:
-        self.model, _, self.preprocess = open_clip.create_model_and_transforms('ViT-B-32', pretrained='laion2b_s34b_b79k')
-        self.tokenizer = open_clip.get_tokenizer('ViT-B-32')
+        self.model, _, self.preprocess = open_clip.create_model_and_transforms(
+            "ViT-B-32", pretrained="laion2b_s34b_b79k"
+        )
+        self.tokenizer = open_clip.get_tokenizer("ViT-B-32")
+
     def __call__(self, image: Image.Image, promt: list[str]) -> torch.Any:
         image = self.preprocess(image).unsqueeze(0)
         text = self.tokenizer(promt)
